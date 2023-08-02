@@ -22,9 +22,12 @@ train_peptides = pd.read_csv("C:/Users/Dave/Desktop/dataviz data/train_peptides.
 train_protiens = pd.read_csv("C:/Users/Dave/Desktop/dataviz data/train_proteins.csv")
 supplemental_clinical_data = pd.read_csv("C:/Users/Dave/Desktop/dataviz data/supplemental_clinical_data.csv")
 combined = pd.concat([train_clinical_data, supplemental_clinical_data]).reset_index(drop=True)
+smape_baseline = 95.76  # Replace with actual values
+smape_updrs40 = 69.51
+smape_additional = 69.42
+smape_med = 67.61
+smape_protein = 69.71
 
-fig, axs = plt.subplots(nrows=2, ncols=1, figsize=(15, 12.5))
-axs = axs.flatten()
 labels = ["UPDRS Part 1", "UPDRS Part 2", "UPDRS Part 3", "UPDRS Part 4"]
 features = ["updrs_1", "updrs_2", "updrs_3", "updrs_4"]
 
@@ -57,18 +60,23 @@ app.layout = html.Div([
         multi=False
     ),
     
-    html.Img(id="image-display", src="")
+    
+    html.Img(id="image-display", src=""),
+    dcc.Graph(id="smape-bar-plot")
+    
 ])
 
 @app.callback(
     Output("updrs-graph", "figure"),
     Output("image-display", "src"),
+    Output("smape-bar-plot", "figure"),
     [Input("updrs-dropdown", "value"), Input("model-dropdown", "value")]
 )
-def update_graph_and_image(selected_feature, selected_model):
+def update_graph_image_and_smape(selected_feature, selected_model):
     index = features.index(selected_feature)
     feature = features[index]
     
+    # Update the UPDRS histogram graph
     fig = px.histogram(
         combined, 
         x=feature, 
@@ -78,7 +86,7 @@ def update_graph_and_image(selected_feature, selected_model):
     )
     
     fig.update_layout(
-        xaxis_title=labels[index],
+        xaxis_title="Months",
         yaxis_title="Count",
         plot_bgcolor="white",
         font=dict(
@@ -91,6 +99,7 @@ def update_graph_and_image(selected_feature, selected_model):
         bargroupgap=0.1
     )
     
+    # Update the model image display
     selected_image_link = model_image_links[selected_model]
     response = requests.get(selected_image_link)
     img = Image.open(io.BytesIO(response.content))
@@ -101,7 +110,38 @@ def update_graph_and_image(selected_feature, selected_model):
     
     src = f"data:image/{img.format.lower()};base64,{img_base64}"
     
-    return fig, src
+    # Update the SMAPE bar plot
+    x_values = ["Baseline", "Constant UPDRS 4", "Supplemental Data", "Medication State", "Protein Data"]
+    y_values = [smape_baseline, smape_updrs40, smape_additional, smape_med, smape_protein]
+    
+    smape_fig = px.bar(
+        x=x_values,
+        y=y_values,
+        title="SMAPE Score (Lower is Better) all with Catboost",
+        labels={"x": "", "y": "SMAPE"},
+        color_discrete_sequence=["blue"],
+    )
+    smape_fig.add_shape(
+        type="line",
+        x0=-0.5,
+        x1=4.5,
+        y0=69.51,
+        y1=69.51,
+        line=dict(color="red", dash="dash"),
+    )
+    smape_fig.update_yaxes(range=[61, 97])
+    
+    for i, y_val in enumerate(y_values):
+        smape_fig.add_annotation(
+            x=i,
+            y=y_val,
+            text="{:.4f}".format(y_val),
+            showarrow=True,
+            arrowhead=1,
+            yshift=10,
+        )
+    
+    return fig, src, smape_fig
 
 if __name__ == '__main__':
     app.run_server(debug=True)
