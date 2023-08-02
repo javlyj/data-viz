@@ -14,13 +14,26 @@ import io
 import base64
 from PIL import Image
 from IPython.display import display
-
+import os
 
 app = dash.Dash(__name__)
-train_clinical_data = pd.read_csv("C:/Users/Dave/Desktop/dataviz data/train_clinical_data.csv")
-train_peptides = pd.read_csv("C:/Users/Dave/Desktop/dataviz data/train_peptides.csv")
-train_protiens = pd.read_csv("C:/Users/Dave/Desktop/dataviz data/train_proteins.csv")
-supplemental_clinical_data = pd.read_csv("C:/Users/Dave/Desktop/dataviz data/supplemental_clinical_data.csv")
+# Get the current working directory
+current_dir = os.getcwd()
+
+# File names of the CSV files
+train_clinical_file = "train_clinical_data.csv"
+train_peptides1_file = "train_peptides1.csv"
+train_peptides2_file = "train_peptides2.csv"
+train_proteins_file = "train_proteins.csv"
+supplemental_clinical_file = "supplemental_clinical_data.csv"
+
+# Read CSV files using the correct paths
+train_clinical_data = pd.read_csv(os.path.join(current_dir, train_clinical_file))
+train_peptides1 = pd.read_csv(os.path.join(current_dir, train_peptides1_file))
+train_peptides2 = pd.read_csv(os.path.join(current_dir, train_peptides2_file))
+train_proteins = pd.read_csv(os.path.join(current_dir, train_proteins_file))
+supplemental_clinical_data = pd.read_csv(os.path.join(current_dir, supplemental_clinical_file))
+train_peptides = pd.concat([train_peptides1, train_peptides2]).reset_index(drop=True)
 combined = pd.concat([train_clinical_data, supplemental_clinical_data]).reset_index(drop=True)
 smape_baseline = 95.76  # Replace with actual values
 smape_updrs40 = 69.51
